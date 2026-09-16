@@ -43,7 +43,7 @@ from prompt_toolkit.widgets import SearchToolbar
 from pygments.lexers.python import PythonLexer
 from rich.text import Text
 
-from ember import __version__
+from ember import __version__, signature
 from ember.completer import EmberCompleter, SignatureHinter
 from ember.display import short_path
 from ember.output import format_duration
@@ -223,7 +223,7 @@ class Repl:
 
     def _status(self) -> StyleAndTextTuples:
         width = self.app.output.get_size().columns - 2
-        left = self._status_left()
+        left = self._status_left(width)
         hints = self._hints()
         left_w = _width(left)
         if left_w > width:
@@ -234,11 +234,11 @@ class Repl:
         right = _render_hints(hints)
         return [("", " "), *left, ("", " " * (width - left_w - _width(right))), *right]
 
-    def _status_left(self) -> StyleAndTextTuples:
+    def _status_left(self, width: int) -> StyleAndTextTuples:
         if self.flash and time.monotonic() < self.flash[1]:
             return [("class:status.warn", self.flash[0])]
         if self.hinter.current and "(" in self.buffer.text:
-            return list(self.hinter.current)
+            return signature.render(self.hinter.current, width)
         sep = ("class:status.sep", "  ·  ")
         out: StyleAndTextTuples = [("class:status.accent", "● "), ("class:status", f"py {platform.python_version()}")]
         venv = os.environ.get("VIRTUAL_ENV") or (sys.prefix if sys.prefix != sys.base_prefix else "")

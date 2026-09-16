@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING, Callable, Iterable
 import jedi
 from prompt_toolkit.completion import CompleteEvent, Completer, Completion, PathCompleter
 from prompt_toolkit.document import Document
-from prompt_toolkit.formatted_text import StyleAndTextTuples
 
+from ember import signature
 from ember.magics import CELL_MAGICS, LINE_MAGICS
+from ember.signature import SigInfo
 from ember.transform import HELP_RE, MAGIC_RE, SHELL_RE
 
 if TYPE_CHECKING:
@@ -120,7 +121,7 @@ class SignatureHinter:
     def __init__(self, shell: Shell, on_update: Callable[[], None]):
         self.shell = shell
         self.on_update = on_update
-        self.current: StyleAndTextTuples = []
+        self.current: SigInfo | None = None
         self._request: tuple[str, int, int] | None = None
         self._cond = threading.Condition()
         threading.Thread(target=self._run, name="ember-signatures", daemon=True).start()
@@ -133,7 +134,7 @@ class SignatureHinter:
     def clear(self) -> None:
         with self._cond:
             self._request = None
-        self.current = []
+        self.current = None
 
     def _run(self) -> None:
         last: tuple[str, int, int] | None = None
@@ -146,24 +147,14 @@ class SignatureHinter:
             try:
                 result = self._compute(text, row, col)
             except Exception:
-                result = []
+                result = None
             if result != self.current:
                 self.current = result
                 self.on_update()
 
-    def _compute(self, text: str, row: int, col: int) -> StyleAndTextTuples:
+    def _compute(self, text: str, row: int, col: int) -> SigInfo | None:
         line = text.split("\n")[row][:col]
         if "(" not in text or MAGIC_RE.match(line) or SHELL_RE.match(line):
-            return []
+            return None
         sigs = jedi.Interpreter(_jedi_source(text), [self.shell.ns]).get_signatures(row + 1, col)
-        if not sigs:
-            return []
-        sig = sigs[0]
-        out: StyleAndTextTuples = [("class:sig.icon", "ƒ "), ("class:sig.name", sig.name), ("class:sig.punct", "(")]
-        for i, p in enumerate(sig.params):
-            if i:
-                out.append(("class:sig.punct", ", "))
-            style = "class:sig.param.current" if i == sig.index else "class:sig.param"
-            out.append((style, p.to_string()))
-        out.append(("class:sig.punct", ")"))
-        return out
+        return signature.build(sigs[0], text, self.shell.ns) if sigs else None
