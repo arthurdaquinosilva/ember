@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ast
 import builtins
 import inspect
 import re
+import textwrap
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -19,6 +21,7 @@ _EMPTY = inspect.Parameter.empty
 class Param:
     name: str
     stars: str = ""
+    kind: str = "POSITIONAL_OR_KEYWORD"
     annotation: str | None = None
     inferred: bool = False  # annotation came from inference, not a declaration
     default: str | None = None
@@ -141,6 +144,197 @@ def _live_signature(obj: Any) -> inspect.Signature | None:
         return None
 
 
+# ── inference from the call site and the function body ─────────────────────
+
+_CONTAINER_NODES = {
+    ast.List: "list", ast.ListComp: "list", ast.Dict: "dict", ast.DictComp: "dict",
+    ast.Set: "set", ast.SetComp: "set", ast.Tuple: "tuple", ast.JoinedStr: "str",
+    ast.GeneratorExp: "Generator", ast.Lambda: "Callable",
+}
+
+
+def expr_type(
+    node: ast.expr,
+    source: str,
+    ns: dict[str, Any],
+    local_types: dict[str, str] | None = None,
+    use_jedi: bool = True,
+) -> str | None:
+    """Best-effort type of an expression, without evaluating anything with side effects.
+
+    `local_types` holds known types of names inside a function body (its parameters);
+    jedi is only useful at the call site, where names refer to the live namespace."""
+    local_types = local_types or {}
+    if isinstance(node, ast.Constant):
+        return type_name(node.value)
+    for node_type, name in _CONTAINER_NODES.items():
+        if isinstance(node, node_type):
+            return name
+    if isinstance(node, ast.UnaryOp) and isinstance(node.operand, ast.Constant):
+        return type_name(node.operand.value)
+    if isinstance(node, ast.Name):
+        if node.id in local_types:
+            return local_types[node.id]
+        if node.id in ns:
+            return type_name(ns[node.id])
+        if isinstance(getattr(builtins, node.id, None), type):
+            return "type"
+    if isinstance(node, ast.BinOp):
+        left = expr_type(node.left, source, ns, local_types, use_jedi)
+        right = expr_type(node.right, source, ns, local_types, use_jedi)
+        sequences = ("str", "list", "tuple", "bytes")
+        if isinstance(node.op, ast.Mult) and "int" in (left, right) and (left in sequences or right in sequences):
+            return left if left in sequences else right
+        if left and left == right:
+            return "float" if isinstance(node.op, ast.Div) and left == "int" else left
+        if {left, right} == {"int", "float"}:
+            return "float"
+        return None
+    if isinstance(node, ast.Compare) or (isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not)):
+        return "bool"
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        target = ns.get(node.func.id, getattr(builtins, node.func.id, None))
+        if isinstance(target, type):
+            return target.__name__
+    segment = ast.get_source_segment(source, node)
+    if not use_jedi or not segment or "\n" in segment:
+        return None
+    try:
+        import jedi
+
+        names = jedi.Interpreter(segment, [ns]).infer(1, len(segment))
+        return _clean_inferred([n.name for n in names if n.type in ("instance", "class")])
+    except Exception:
+        return None
+
+
+def _call_arguments(text: str, bracket: tuple[int, int]) -> str:
+    """The raw argument text of the call whose `(` is at `bracket` (1-based line)."""
+    lines = text.split("\n")
+    offset = sum(len(ln) + 1 for ln in lines[: bracket[0] - 1]) + bracket[1] + 1
+    depth = 1
+    quote: str | None = None
+    for i in range(offset, len(text)):
+        ch = text[i]
+        if quote:
+            if ch == quote and text[i - 1] != "\\":
+                quote = None
+        elif ch in "'\"":
+            quote = ch
+        elif ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+            if depth == 0:
+                return text[offset:i]
+    return text[offset:]
+
+
+def _parse_call(args: str) -> ast.Call | None:
+    """Parse possibly-unfinished argument text, dropping a trailing partial argument if needed."""
+    candidates = [args, args.rstrip().rstrip(",")]
+    if "," in args:
+        candidates.append(args[: args.rfind(",")])
+    for candidate in candidates:
+        try:
+            tree = ast.parse(f"_({candidate})", mode="eval")
+        except SyntaxError:
+            continue
+        if isinstance(tree.body, ast.Call):
+            return tree.body
+    return None
+
+
+def infer_argument_types(params: list[Param], text: str, bracket: tuple[int, int], ns: dict[str, Any]) -> dict[str, str]:
+    """Map each parameter name to the type of the argument passed for it at this call site."""
+    source = _call_arguments(text, bracket)
+    call = _parse_call(source)
+    if call is None:
+        return {}
+    wrapped = f"_({source})"
+    found: dict[str, list[str]] = {}
+    positional = [p for p in params if p.kind in ("POSITIONAL_ONLY", "POSITIONAL_OR_KEYWORD")]
+    var_positional = next((p for p in params if p.kind == "VAR_POSITIONAL"), None)
+    for i, arg in enumerate(call.args):
+        if isinstance(arg, ast.Starred):
+            break
+        target = positional[i] if i < len(positional) else var_positional
+        if target and (t := expr_type(arg, wrapped, ns)):
+            found.setdefault(target.name, []).append(t)
+    names = {p.name for p in params}
+    var_keyword = next((p for p in params if p.kind == "VAR_KEYWORD"), None)
+    for kw in call.keywords:
+        if kw.arg is None:
+            continue
+        target_name = kw.arg if kw.arg in names else (var_keyword.name if var_keyword else None)
+        if target_name and (t := expr_type(kw.value, wrapped, ns)):
+            found.setdefault(target_name, []).append(t)
+    return {name: _clean_inferred(types) or "" for name, types in found.items()}
+
+
+class _ReturnCollector(ast.NodeVisitor):
+    def __init__(self) -> None:
+        self.returns: list[ast.expr | None] = []
+        self.generator = False
+
+    def visit_Return(self, node: ast.Return) -> None:
+        self.returns.append(node.value)
+
+    def visit_Yield(self, node: ast.AST) -> None:
+        self.generator = True
+
+    visit_YieldFrom = visit_Yield
+
+    def _skip(self, node: ast.AST) -> None:
+        pass  # nested scopes have their own returns
+
+    visit_FunctionDef = visit_AsyncFunctionDef = visit_Lambda = visit_ClassDef = _skip
+
+
+def infer_return_type(obj: Any, ns: dict[str, Any]) -> str | None:
+    """Infer a return type from a live function's source: `None` if it never returns a value."""
+    func = getattr(obj, "__func__", obj)
+    if inspect.isclass(func) or not inspect.isfunction(func):
+        return None
+    try:
+        source = textwrap.dedent(inspect.getsource(func))
+        tree = ast.parse(source)
+    except (OSError, TypeError, SyntaxError):
+        return None
+    fn = tree.body[0] if tree.body else None
+    if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        return None
+    local_types: dict[str, str] = {}
+    all_args = [*fn.args.posonlyargs, *fn.args.args, *fn.args.kwonlyargs]
+    defaults = [None] * (len(fn.args.posonlyargs) + len(fn.args.args) - len(fn.args.defaults)) + list(fn.args.defaults)
+    defaults += list(fn.args.kw_defaults)
+    for arg, default in zip(all_args, defaults):
+        if arg.annotation is not None:
+            local_types[arg.arg] = ast.unparse(arg.annotation)
+        elif isinstance(default, ast.Constant) and default.value is not None:
+            local_types[arg.arg] = type_name(default.value)
+    collector = _ReturnCollector()
+    for stmt in fn.body:
+        collector.visit(stmt)
+    if collector.generator:
+        return "AsyncGenerator" if isinstance(fn, ast.AsyncFunctionDef) else "Generator"
+    values = [v for v in collector.returns if v is not None and not (isinstance(v, ast.Constant) and v.value is None)]
+    has_none = len(values) < len(collector.returns) or not collector.returns
+    types: list[str] = []
+    for value in values:
+        # Only literals, constructor calls and the function's own typed parameters are trusted.
+        t = expr_type(value, source, {}, local_types, use_jedi=False)
+        if t is None:
+            return None
+        types.append(t)
+    if has_none:
+        types.append("None")
+    result = _clean_inferred(types)
+    if result and isinstance(fn, ast.AsyncFunctionDef):
+        result = f"Coroutine[{result}]"
+    return result
+
+
 # ── building ───────────────────────────────────────────────────────────────
 
 
@@ -156,12 +350,14 @@ def _clean_inferred(names: list[str]) -> str | None:
 def build(jedi_sig: Any, text: str, ns: dict[str, Any]) -> SigInfo:
     line_no, col = jedi_sig.bracket_start
     line = text.split("\n")[line_no - 1][:col]
-    live = _live_signature(resolve_callee(line, ns))
+    callee = resolve_callee(line, ns)
+    live = _live_signature(callee)
     live_params = dict(live.parameters) if live else {}
 
     info = SigInfo(name=jedi_sig.name, index=jedi_sig.index)
     for jp in jedi_sig.params:
         p = split_param(jp.to_string())
+        p.kind = jp.kind.name
         lp = live_params.get(p.name)
         if p.annotation is None and lp is not None and lp.annotation is not _EMPTY:
             p.annotation = format_annotation(lp.annotation)
@@ -178,15 +374,24 @@ def build(jedi_sig: Any, text: str, ns: dict[str, Any]) -> SigInfo:
             p.inferred = p.annotation is not None
         info.params.append(p)
 
+    # Unannotated params: the argument actually being passed beats a guess from the default.
+    if any(p.annotation is None or p.inferred for p in info.params):
+        for name, t in infer_argument_types(info.params, text, jedi_sig.bracket_start, ns).items():
+            p = next(p for p in info.params if p.name == name)
+            if t and (p.annotation is None or p.inferred):
+                p.annotation, p.inferred = t, True
+
     info.returns = _returns_from_string(jedi_sig.to_string())
     if info.returns is None and live is not None and live.return_annotation is not _EMPTY:
         info.returns = format_annotation(live.return_annotation)
     if info.returns is None:
         try:
             info.returns = _clean_inferred([n.name for n in jedi_sig.execute()])
-            info.returns_inferred = info.returns is not None
         except Exception:
             pass
+        if info.returns is None:
+            info.returns = infer_return_type(callee, ns)
+        info.returns_inferred = info.returns is not None
     return info
 
 

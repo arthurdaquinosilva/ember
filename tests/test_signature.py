@@ -79,3 +79,51 @@ def test_narrow_width_keeps_current_param_and_return(ns):
     info = _info("print(1, sep='', ", ns)
     out = _text(signature.render(info, 50))
     assert "end" in out and out.endswith("-> None") and "…" in out
+
+
+# ── inference for unannotated code, through a real shell ─────────────────────
+
+
+@pytest.fixture(scope="module")
+def shell():
+    from ember.shell import Shell
+
+    sh = Shell()
+    for cell in [
+        'def say_my_name(name):\n    print(f"Hello {name}")',
+        'def greet(name, times=1):\n    return f"hi {name}" * times',
+        "def pick(flag, a, b=None):\n    if flag:\n        return str(a)\n    return None",
+        "def gen(n):\n    yield n",
+        'async def fetch(url):\n    return {"url": url}',
+        "def ident(x):\n    return x",
+        "def total(*xs, **opts):\n    pass",
+        'me = "Arthur"',
+    ]:
+        sh.run_cell(cell)
+    return sh
+
+
+@pytest.mark.parametrize(
+    "code, expected",
+    [
+        ('say_my_name("Arthur"', "ƒ say_my_name(name: str) -> None"),
+        ("say_my_name(me", "ƒ say_my_name(name: str) -> None"),
+        ("say_my_name(", "ƒ say_my_name(name) -> None"),
+        ('greet("x", times=3', "ƒ greet(name: str, times: int = 1) -> str"),
+        ("pick(True, 3.5, ", "ƒ pick(flag: bool, a: float, b: None = None) -> str | None"),
+        ("gen(10", "ƒ gen(n: int) -> Generator"),
+        ('fetch("x"', "ƒ fetch(url: str) -> Coroutine[dict]"),
+        ("ident(1", "ƒ ident(x: int)"),  # returns an untyped parameter: unknown, so no guess
+        ("total(1, 2.0, verbose=True", "ƒ total(*xs: int | float, **opts: bool) -> None"),
+    ],
+)
+def test_inferred_from_call_site_and_body(shell, code, expected):
+    info = _info(code, shell.ns)
+    assert _text(signature.render(info, 200)) == expected
+    assert all(p.inferred for p in info.params if p.annotation)
+    assert info.returns is None or info.returns_inferred
+
+
+def test_declared_annotation_beats_call_site(ns):
+    info = _info('add("oops", ', ns)
+    assert info.params[0].annotation == "int" and not info.params[0].inferred
