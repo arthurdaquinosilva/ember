@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/cover.png" alt="ember's start screen: the pixel EMBER_ wordmark, version and environment info, the input bar and the key bar" width="900">
+
 # ✦ ember
 
 **A modern, beautiful interactive Python shell.**
@@ -9,9 +11,13 @@ IPython's power — magics, history, debugging, extensions — rebuilt around a 
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/arthurdaquinosilva/ember/blob/main/pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/arthurdaquinosilva/ember/blob/main/LICENSE)
 
-<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/demo.svg?sanitize=true" alt="ember running in a terminal: pixel EMBER banner, cells with results and timing, and a typed signature hint" width="820">
-
 </div>
+
+## See it in action
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/demo.svg?sanitize=true" alt="ember running in a terminal: cells with results and timing, %timeit, and a typed signature hint" width="820">
+</p>
 
 ## Why ember
 
