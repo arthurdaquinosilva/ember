@@ -34,6 +34,8 @@ class Palette:
     border: str
     surface: str
     selection: str
+    bar: str  # filled input bar
+    label: str  # key-bar labels and banner values
     accent: str
     accent2: str
     ok: str
@@ -62,6 +64,8 @@ PALETTES: dict[str, Palette] = {
         border="#3b3b3b",
         surface="#161616",
         selection="#2b2b2b",
+        bar="#24262b",
+        label="#86c7c0",
         accent="#ff8a4c",
         accent2="#ffc46b",
         ok="#7ee2a8",
@@ -86,6 +90,8 @@ PALETTES: dict[str, Palette] = {
         border="#3a3552",
         surface="#15131f",
         selection="#2a2640",
+        bar="#262238",
+        label="#6ee7f9",
         accent="#b18cff",
         accent2="#6ee7f9",
         ok="#6ee7b7",
@@ -110,6 +116,8 @@ PALETTES: dict[str, Palette] = {
         border="#2e4533",
         surface="#0f1a12",
         selection="#1f3324",
+        bar="#18261c",
+        label="#5eead4",
         accent="#4ade80",
         accent2="#a3e635",
         ok="#4ade80",
@@ -195,6 +203,15 @@ class Theme:
         ui = PTStyle.from_dict(
             {
                 "": p.fg,
+                "bar": f"bg:{p.bar}",
+                "bar.prompt": f"bg:{p.bar} bold {p.accent}",
+                "bar.cont": f"bg:{p.bar} {p.faint}",
+                "bar.count": f"bg:{p.bar} {p.faint}",
+                "placeholder": p.faint,
+                "keybar.label": f"bold {p.label}",
+                "keybar.key": p.fg,
+                "keybar.sep": p.faint,
+                "modeline.mode": f"bold {p.label}",
                 "box.border": p.border,
                 "box.border.active": p.faint,
                 "box.title": f"bold {p.accent}",
@@ -262,7 +279,9 @@ class Theme:
                 "ember.err": p.err,
                 "ember.warn": p.warn,
                 "ember.info": p.info,
+                "ember.label": f"bold {p.label}",
                 "ember.accent.bold": f"bold {p.accent}",
+                "ember.accent.blink": f"bold blink {p.accent}",
                 "ember.err.bold": f"bold {p.err}",
                 "ember.fg.bold": f"bold {p.fg}",
                 "ember.info.bold": f"bold {p.info}",

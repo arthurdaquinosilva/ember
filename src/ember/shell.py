@@ -692,7 +692,8 @@ class Shell:
             body: RenderableType = Text.assemble(("!", "ember.accent.bold"), (stripped[1:], "ember.fg"))
         else:
             body = Syntax(source, "python", theme=self.theme.syntax_theme, background_color="default", word_wrap=True)
-        grid.add_row(Text("❯", style="ember.accent.bold"), body)
+        marker = ">" if self.settings.layout == "block" else "❯"
+        grid.add_row(Text(marker, style="ember.accent.bold"), body)
         self.ui.print(grid)
 
     def footer(self, n: int, elapsed: float, result: Any, error: str | None) -> None:

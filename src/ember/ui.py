@@ -8,6 +8,7 @@ import platform
 import sys
 import time
 from pathlib import Path
+from typing import Callable
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -34,6 +35,7 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.layout import (
     ConditionalContainer,
+    DynamicContainer,
     Float,
     FloatContainer,
     FormattedTextControl,
@@ -48,6 +50,9 @@ from prompt_toolkit.layout.menus import CompletionsMenu
 from prompt_toolkit.layout.processors import (
     AppendAutoSuggestion,
     HighlightMatchingBracketProcessor,
+    Processor,
+    Transformation,
+    TransformationInput,
 )
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.styles import DynamicStyle
@@ -57,6 +62,7 @@ from pygments.lexers.python import PythonLexer
 from rich.text import Text
 
 from ember import __version__, signature
+from ember.banner import wordmark
 from ember.completer import EmberCompleter, SignatureHinter
 from ember.history import PromptHistory
 from ember.display import short_path
@@ -117,6 +123,18 @@ def _render_hints(hints: list[tuple[str, str]]) -> StyleAndTextTuples:
     return out
 
 
+class Placeholder(Processor):
+    """Faint hint text shown while the buffer is empty."""
+
+    def __init__(self, text: Callable[[], str]):
+        self.text = text
+
+    def apply_transformation(self, ti: TransformationInput) -> Transformation:
+        if ti.lineno == 0 and not ti.document.text:
+            return Transformation([*ti.fragments, ("class:placeholder", self.text())])
+        return Transformation(ti.fragments)
+
+
 class Repl:
     def __init__(self, shell: Shell):
         self.shell = shell
@@ -156,24 +174,38 @@ class Repl:
 
     # ── layout ────────────────────────────────────────────────────────────
 
-    def _build_app(self) -> Application:
-        input_window = Window(
+    def _input_window(self, block: bool) -> Window:
+        processors = [HighlightMatchingBracketProcessor(chars="[](){}"), AppendAutoSuggestion()]
+        if block:
+            processors.append(Placeholder(lambda: "Type Python code…"))
+        return Window(
             BufferControl(
                 buffer=self.buffer,
                 lexer=PygmentsLexer(PythonLexer),
-                input_processors=[
-                    HighlightMatchingBracketProcessor(chars="[](){}"),
-                    AppendAutoSuggestion(),
-                ],
+                input_processors=processors,
                 search_buffer_control=self.search.control,
                 preview_search=True,
             ),
             height=Dimension(min=1, max=16),
             wrap_lines=True,
-            get_line_prefix=self._line_prefix,
+            get_line_prefix=self._bar_prefix if block else self._line_prefix,
             dont_extend_height=True,
+            style="class:bar" if block else "",
         )
 
+    def _with_menu(self, body: HSplit) -> FloatContainer:
+        return FloatContainer(
+            content=body,
+            floats=[
+                Float(
+                    xcursor=True,
+                    ycursor=True,
+                    content=CompletionsMenu(max_height=MENU_HEIGHT, scroll_offset=1, extra_filter=has_focus(DEFAULT_BUFFER)),
+                )
+            ],
+        )
+
+    def _box_layout(self) -> FloatContainer:
         def border(char: str, **kw) -> Window:
             return Window(char=char, style=self._border_style, **kw)
 
@@ -184,31 +216,39 @@ class Repl:
             Window(FormattedTextControl(self._top_right), height=1, dont_extend_width=True, style=self._border_style),
             border("╮", width=1, height=1),
         ])
-        middle = VSplit([
-            border("│", width=1),
-            Window(width=1),
-            input_window,
-            Window(width=1),
-            border("│", width=1),
-        ])
+        middle = VSplit([border("│", width=1), Window(width=1), self._input_window(block=False), Window(width=1), border("│", width=1)])
         bottom = VSplit([border("╰", width=1, height=1), border("─", height=1), border("╯", width=1, height=1)])
-
         status = Window(FormattedTextControl(self._status), height=1, style="class:status")
         reserve = ConditionalContainer(Window(height=MENU_HEIGHT), filter=has_completions)
+        return self._with_menu(HSplit([top, middle, bottom, self.search, Window(height=1), status, Window(height=1), reserve]))
 
-        body = HSplit([top, middle, bottom, self.search, Window(height=1), status, Window(height=1), reserve])
-        root = FloatContainer(
-            content=body,
-            floats=[
-                Float(
-                    xcursor=True,
-                    ycursor=True,
-                    content=CompletionsMenu(max_height=MENU_HEIGHT, scroll_offset=1, extra_filter=has_focus(DEFAULT_BUFFER)),
-                )
-            ],
-        )
+    def _block_layout(self) -> FloatContainer:
+        """A full-width filled input bar, a key bar and a mode line."""
+        pad = lambda **kw: Window(style="class:bar", **kw)  # noqa: E731
+        bar = HSplit([
+            pad(height=1),
+            VSplit([
+                pad(width=2),
+                self._input_window(block=True),
+                Window(FormattedTextControl(self._bar_counter), dont_extend_width=True, style="class:bar"),
+                pad(width=2),
+            ]),
+            pad(height=1),
+        ])
+        keybar = Window(FormattedTextControl(self._keybar), height=1)
+        modeline = Window(FormattedTextControl(self._modeline), height=1)
+        reserve = ConditionalContainer(Window(height=MENU_HEIGHT), filter=has_completions)
+        return self._with_menu(HSplit([bar, self.search, Window(height=1), keybar, Window(height=1), modeline, reserve]))
+
+    @property
+    def block(self) -> bool:
+        return self.shell.settings.layout == "block"
+
+    def _build_app(self) -> Application:
+        box, block = self._box_layout(), self._block_layout()
+        root = DynamicContainer(lambda: block if self.block else box)
         app = Application(
-            layout=Layout(root, focused_element=input_window),
+            layout=Layout(root),
             key_bindings=self._bindings(),
             style=DynamicStyle(lambda: self.shell.theme.pt_style),
             include_default_pygments_style=False,
@@ -219,6 +259,79 @@ class Repl:
         app.ttimeoutlen = 0.05  # escape sequences arrive together; don't make vi users wait on Esc
         app.key_processor.after_key_press += lambda _: app.invalidate()
         return app
+
+    # ── block layout pieces ───────────────────────────────────────────────
+
+    def _bar_prefix(self, line_number: int, wrap_count: int) -> StyleAndTextTuples:
+        if wrap_count:
+            return [("class:bar.cont", "  ")]
+        return [("class:bar.prompt", "> ")] if line_number == 0 else [("class:bar.cont", "· ")]
+
+    def _bar_counter(self) -> StyleAndTextTuples:
+        return [("class:bar.count", f"  [{self.shell.count + 1}]")]
+
+    def _vi_mode(self) -> str | None:
+        if self.app.editing_mode != EditingMode.VI:
+            return None
+        mode = self.app.vi_state.input_mode
+        return "NORMAL" if mode == InputMode.NAVIGATION else "REPLACE" if mode == InputMode.REPLACE else "INSERT"
+
+    def _keybar_items(self) -> list[tuple[str, str]]:
+        if self.buffer.complete_state:
+            return [("NEXT", "Tab"), ("ACCEPT", "Enter"), ("CLOSE", "Esc")]
+        items: list[tuple[str, str]] = []
+        mode = self._vi_mode()
+        if mode == "INSERT":
+            items.append(("NORMAL MODE", "Esc"))
+        elif mode:
+            items.append(("INSERT MODE", "i"))
+        if self._incomplete():
+            items += [("NEWLINE", "Enter"), ("RUN", "Enter on a blank line")]
+        else:
+            items += [("RUN", "Enter"), ("NEWLINE", "Shift+Enter" if self.shift_enter_works else "Alt+Enter")]
+        items += [("EXIT", "Ctrl+D"), ("EDITOR", "Ctrl+O"), ("SHELL", "!cmd"), ("HELP", "%help")]
+        return items  # least important last: they're dropped first on narrow terminals
+
+    def _keybar(self) -> StyleAndTextTuples:
+        width = self.app.output.get_size().columns - 4
+        if self.hinter.current and "(" in self.buffer.text:
+            return [("", "  "), *signature.render(self.hinter.current, width)]
+        items = self._keybar_items()
+
+        def render(entries: list[tuple[str, str]]) -> StyleAndTextTuples:
+            out: StyleAndTextTuples = [("", "  ")]
+            for i, (label, key) in enumerate(entries):
+                if i:
+                    out.append(("class:keybar.sep", "  |  "))
+                out += [("class:keybar.label", label), ("class:keybar.key", f": {key}")]
+            return out
+
+        while len(items) > 1 and _width(render(items)) > width + 2:
+            items.pop()
+        return render(items)
+
+    def _modeline(self) -> StyleAndTextTuples:
+        out: StyleAndTextTuples = []
+        if mode := self._vi_mode():
+            out += [("class:modeline.mode", f"[{mode}]"), ("", "  ")]
+        else:
+            out.append(("", "  "))  # line up with the key bar
+        if self.flash and time.monotonic() < self.flash[1]:
+            return out + [("class:status.warn", self.flash[0])]
+        sep = ("class:status.sep", "  ·  ")
+        out += [("class:status", f"py {platform.python_version()}")]
+        venv = os.environ.get("VIRTUAL_ENV") or (sys.prefix if sys.prefix != sys.base_prefix else "")
+        if venv:
+            out += [sep, ("class:status", Path(venv).name)]
+        out += [sep, ("class:status", short_path(os.getcwd()))]
+        if self.shell.last_duration is not None:
+            mark = ("class:status.ok", "✓ ") if self.shell.last_ok else ("class:status.err", "✗ ")
+            out += [sep, mark, ("class:status", format_duration(self.shell.last_duration))]
+        for tag in (f"gui {self.shell.gui}" if self.shell.gui else "", "autoreload" if self.shell.autoreload.enabled else ""):
+            if tag:
+                out += [sep, ("class:status.dim", tag)]
+        width = self.app.output.get_size().columns - 1
+        return out if _width(out) <= width else _truncate(out, width)
 
     def _border_style(self) -> str:
         return "class:box.border.active" if self.buffer.text else "class:box.border"
@@ -414,6 +527,36 @@ class Repl:
     # ── main loop ─────────────────────────────────────────────────────────
 
     def banner(self) -> None:
+        if self.block:
+            self._block_banner()
+        else:
+            self._box_banner()
+
+    def _block_banner(self) -> None:
+        ui = self.shell.ui
+        ui.print()
+        if ui.width >= 40:
+            for line in wordmark("EMBER_"):
+                ui.print(line, overflow="crop", no_wrap=True)
+        else:
+            ui.print(Text("  EMBER_", style="ember.accent.bold"))
+        ui.print()
+        ui.print(Text(f"  v{__version__}", style="ember.faint"))
+        ui.print()
+        rows = [("Python", platform.python_version())]
+        venv = os.environ.get("VIRTUAL_ENV") or (sys.prefix if sys.prefix != sys.base_prefix else "")
+        if venv:
+            rows.append(("Venv", Path(venv).name))
+        rows.append(("Directory", short_path(os.getcwd())))
+        if self.shell.profile is not None and self.shell.profile.name != "default":
+            rows.append(("Profile", self.shell.profile.name))
+        rows.append(("Theme", self.shell.theme.name))
+        key_width = max(len(k) for k, _ in rows) + 2
+        for key, value in rows:
+            ui.print(Text.assemble(("  " + key.ljust(key_width), "ember.fg"), (value, "ember.label")))
+        ui.print()
+
+    def _box_banner(self) -> None:
         ui = self.shell.ui
         name = Text()
         for ch, color in zip("ember", ("ember.accent", "ember.accent", "ember.accent2", "ember.accent2", "ember.accent2")):
@@ -450,6 +593,7 @@ class Repl:
 
         def pre_run() -> None:
             self.buffer.reset(Document(initial, len(initial)))
+            self.app.layout.focus(self.buffer)  # the layout may have switched since last time
             if self.app.editing_mode == EditingMode.VI:
                 self.app.vi_state.input_mode = InputMode.INSERT
 

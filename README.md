@@ -3,22 +3,31 @@
 A modern interactive Python shell — IPython's power, rebuilt around a calm, minimal terminal UI.
 
 ```
-❯ x = [i**2 for i in range(8)]
-╰─ ✓ 735µs
+  █▀▀▀▀ █▄ ▄█ █▀▀▀▄ █▀▀▀▀ █▀▀▀▄
+  █▄▄▄  █ █ █ █▄▄▄▀ █▄▄▄  █▄▄▄▀
+  █     █   █ █   █ █     █ ▀▄
+  ▀▀▀▀▀ ▀   ▀ ▀▀▀▀  ▀▀▀▀▀ ▀   ▀ ▀▀▀▀▀
 
+  v0.2.0
 
-❯ x
+  Python     3.12.7
+  Venv       .venv
+  Directory  ~/projects/modern-python-repl
+  Theme      void
+
+> x
 │
 │ [0, 1, 4, 9, 16, 25, 36, 49]
 │
 ╰─ ✓ 2.6ms · list · 8 items · Out[2]
 
 
-╭─ In [3] ───────────────────────────────────────────────────────────╮
-│ ❯ say_my_name("Arthur"                                             │
-╰────────────────────────────────────────────────────────────────────╯
+  > say_my_name("Arthur"                                          [3]
 
- ƒ say_my_name(name: str) -> None
+
+  ƒ say_my_name(name: str) -> None
+
+[INSERT]  py 3.12.7  ·  .venv  ·  ~/projects/modern-python-repl
 ```
 
 ## Install
@@ -30,7 +39,8 @@ python3 -m venv .venv && .venv/bin/pip install -e .
 
 ## The interface
 
-- **Boxed input editor** — syntax highlighting, auto-indent, bracket matching, inline history suggestions
+- **Two layouts** — `block` (default: pixel wordmark, full-width input bar, key bar, mode line) or `box` (rounded input box with a status line); switch with `%config layout=box` or `layout = "box"` in config
+- **Input editor** — syntax highlighting, auto-indent, bracket matching, inline history suggestions
 - **Smart Enter** — runs complete code, adds a newline inside unfinished blocks (a blank line runs a block)
 - **Typed signature hints** — declared, stub and inferred parameter/return types while you type a call
 - **Cell blocks** — code, output on a rail, and a footer with status, time, result type and `Out[N]`
@@ -80,6 +90,7 @@ The same layer lets extensions load — `%load_ext line_profiler` then `%lprun -
 
 ```toml
 theme = "nebula"
+layout = "block"               # or "box"
 editing_mode = "vi"
 xmode = "context"
 pdb = false

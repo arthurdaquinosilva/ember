@@ -26,3 +26,19 @@ def test_plain_enter_still_submits():
 
 def test_other_modified_keys_are_ignored_not_inserted():
     assert parse("\x1b[53;6u\x1b[13;2u") == [Keys.Ignore, Keys.ControlJ]
+
+
+def test_wordmark_is_four_lines_of_half_blocks():
+    from ember.banner import pixel_rows
+
+    rows = pixel_rows("EMBER_")
+    assert len(rows) == 4
+    assert set("".join(rows)) <= set("█▀▄ ")
+    assert rows[0].startswith("█▀▀▀▀")
+
+
+def test_layout_setting(shell):
+    shell.run_cell("%config layout=box")
+    assert shell.settings.layout == "box"
+    shell.run_cell("%config layout=sideways")
+    assert not shell.last_ok

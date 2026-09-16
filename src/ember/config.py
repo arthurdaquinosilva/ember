@@ -13,11 +13,13 @@ XMODES = ("minimal", "plain", "context", "verbose")
 INTERACTIVITY = ("last_expr", "all", "last", "none", "last_expr_or_assign")
 AUTOAWAIT = ("asyncio", "trio", "curio", "off")
 EDITING_MODES = ("emacs", "vi")
+LAYOUTS = ("block", "box")
 
 
 @dataclass
 class Settings:
     theme: str = "void"
+    layout: str = "block"
     editing_mode: str = "emacs"
     automagic: bool = True
     autoreload: int = 0
@@ -59,6 +61,7 @@ class Settings:
             "ast_node_interactivity": INTERACTIVITY,
             "autoawait": AUTOAWAIT,
             "editing_mode": EDITING_MODES,
+            "layout": LAYOUTS,
         }.get(name)
         if choices:
             value = value.lower()
