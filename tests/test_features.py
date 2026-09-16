@@ -237,7 +237,10 @@ def test_bookmarks_and_dir_stack(shell, profile):
 
 
 def test_paste_magic(shell, monkeypatch):
+    import shutil
     import subprocess
+
+    monkeypatch.setattr(shutil, "which", lambda name: f"/usr/bin/{name}")  # CI machines have no clipboard tool
 
     class Result:
         stdout = b">>> pasted = 5\n>>> pasted * 2\n10\n"
