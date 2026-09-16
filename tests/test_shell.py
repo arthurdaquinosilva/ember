@@ -1,12 +1,5 @@
 import pytest
 
-from ember.shell import Shell
-
-
-@pytest.fixture
-def shell(capsys):
-    return Shell()
-
 
 def test_expression_result_is_stored(shell):
     shell.run_cell("1 + 2")
@@ -29,7 +22,7 @@ def test_top_level_await(shell):
 def test_exception_marks_failure(shell):
     shell.run_cell("1/0")
     assert not shell.last_ok
-    assert shell.last_traceback is not None
+    assert shell.last_exception is not None
 
 
 def test_unknown_magic_suggests(shell, capsys):

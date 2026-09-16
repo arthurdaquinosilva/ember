@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ember-shell"
-version = "0.1.0"
+version = "0.2.0"
 description = "A modern, beautiful interactive Python shell."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,7 +17,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pyte", "pexpect", "pytest"]
+dev = ["pyte", "pexpect", "pytest", "pyflakes"]
+trio = ["trio"]
+curio = ["curio"]
 
 [project.scripts]
 ember = "ember.cli:main"

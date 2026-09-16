@@ -84,10 +84,11 @@ class Spinner:
 
 
 class RailWriter(io.TextIOBase):
-    def __init__(self, real: TextIO, state: RailState, spinner: Spinner | None = None):
+    def __init__(self, real: TextIO, state: RailState, spinner: Spinner | None = None, spacer: bool = True):
         self.real = real
         self.state = state
         self.spinner = spinner
+        self.spacer = spacer
 
     def write(self, s: str) -> int:
         if not isinstance(s, str):
@@ -99,7 +100,7 @@ class RailWriter(io.TextIOBase):
             if self.spinner:
                 self.spinner.clear()
             out: list[str] = []
-            if not st.wrote and st.at_line_start:
+            if self.spacer and not st.wrote and st.at_line_start:
                 out.append(st.prefix.rstrip() + "\n")  # breathing room below the echoed code
             for piece in _SPLIT.split(s):
                 if not piece:

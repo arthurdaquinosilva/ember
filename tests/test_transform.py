@@ -12,6 +12,8 @@ def test_indented_magic_keeps_indent():
 def test_shell_capture():
     assert transform("files = !ls -la") == "files = __ember__.shell('ls -la', capture=True)"
     assert transform("!echo hi") == "__ember__.shell('echo hi', capture=False)"
+    assert transform("x = !!ls") == "x = __ember__.shell('ls', capture=True)"
+    assert transform("!!ls") == "__ember__.shell('ls', capture=True)"
 
 
 def test_help_syntax():
@@ -20,7 +22,7 @@ def test_help_syntax():
 
 
 def test_cell_magic():
-    assert transform("%%time\nx = 1") == "__ember__.cell_magic('time', '', 'x = 1')"
+    assert transform("%%time\nx = 1") == "__ember__.cell_magic('time', '', 'x = 1\\n')"
 
 
 def test_magic_inside_triple_string_untouched():
