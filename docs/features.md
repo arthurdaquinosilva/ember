@@ -69,10 +69,62 @@ ember picks the richest rendering an object offers:
 
 ## Errors and debugging
 
-- `%xmode` chooses how exceptions look: `minimal` (one line), `plain` (Python's standard traceback), `context` (highlighted source around each frame, the default) or `verbose` (also the local variables of each function). ember's own frames are hidden.
-- `%tb` shows the last traceback again, optionally in another mode: `%tb verbose`.
-- `%debug` opens the post-mortem debugger on the last exception; `%debug statement` runs a statement under the debugger.
-- `%pdb on` opens the debugger automatically whenever a cell raises.
+### How errors look
+
+`%xmode` chooses how exceptions are shown: `minimal` (one line), `plain` (Python's standard traceback), `context` (highlighted source around each frame, the default) or `verbose` (also the local variables of each function). ember's own frames are hidden. `%tb` shows the last traceback again, optionally in another mode: `%tb verbose`.
+
+### Debugging with pdb
+
+ember uses Python's standard debugger, `pdb`. The debugger prompt appears inside the running cell; when you continue or quit, the cell finishes normally.
+
+**Pause where you want** — put `breakpoint()` (or `import pdb; pdb.set_trace()`) in a cell or in a file you import:
+
+```text
+> def average(xs):
+      total = sum(xs)
+      breakpoint()
+      return total / len(xs)
+
+> average([2, 4, 9])
+│ -> return total / len(xs)
+(Pdb) p total
+│ 15
+(Pdb) p xs
+│ [2, 4, 9]
+(Pdb) c
+│ 5.0
+╰─ ✓ 3.18s · float · Out[2]
+```
+
+**Inspect an error after it happened** — run `%debug` right after a failing cell. It opens at the line that raised, with its variables available:
+
+```text
+> average([])
+╰─ ✗ ZeroDivisionError · 1.2ms
+> %debug
+(ember-pdb) p xs
+│ []
+(ember-pdb) q
+```
+
+**Stop on every error** — `%pdb on` opens the debugger automatically whenever a cell raises (`%pdb off` to stop). Set `pdb = true` in [config.toml](configuration.md) to keep it on.
+
+**Start under the debugger** — `%debug average([1, 2])` runs one statement from its first line; `%run -d script.py` steps through a file from its first line; add `-b script.py:12` to set a breakpoint, then type `c` to run to it.
+
+Functions defined in cells have their source available, so `l` and `ll` show the code.
+
+| pdb command | |
+| --- | --- |
+| `p expr`, `pp expr` | Print / pretty-print a value |
+| `n` | Run the next line |
+| `s` | Step into a function call |
+| `c` | Continue until the next breakpoint |
+| `l`, `ll` | Show code around the current line / the whole function |
+| `w`, `u`, `d` | Show the call stack / move up / move down |
+| `b 12`, `b func` | Set a breakpoint |
+| `q` | Quit the debugger |
+
+Type `help` at the debugger prompt for everything else.
 
 ## History and sessions
 

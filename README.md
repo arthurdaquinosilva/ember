@@ -52,6 +52,7 @@ Then run `ember`. Requires Python 3.10+ on macOS or Linux.
 > %timeit sorted(range(1000))
 > %history -g json          # search history across sessions
 > %xmode verbose            # tracebacks with local variables
+> %debug                    # debugger on the last error (or breakpoint() in your code)
 > %help                     # every key, syntax and magic
 ```
 
@@ -71,7 +72,7 @@ Shift+Enter needs a terminal that reports modified keys (iTerm2, WezTerm, Ghostt
 
 | Guide | What's inside |
 | --- | --- |
-| [Features](https://github.com/arthurdaquinosilva/ember/blob/main/docs/features.md) | The interface, input syntax, display, errors & debugging, history, shell, GUI and completion |
+| [Features](https://github.com/arthurdaquinosilva/ember/blob/main/docs/features.md) | The interface, input syntax, display, [errors & debugging](https://github.com/arthurdaquinosilva/ember/blob/main/docs/features.md#errors-and-debugging), history, shell, GUI and completion |
 | [Magic reference](https://github.com/arthurdaquinosilva/ember/blob/main/docs/magics.md) | All 85 magics with options (generated from the code) |
 | [Configuration](https://github.com/arthurdaquinosilva/ember/blob/main/docs/configuration.md) | `config.toml`, layouts and themes, profiles, startup files, command-line options |
 | [IPython compatibility](https://github.com/arthurdaquinosilva/ember/blob/main/docs/ipython-compatibility.md) | `get_ipython()`, custom magics, extensions, display protocol, what's different |
