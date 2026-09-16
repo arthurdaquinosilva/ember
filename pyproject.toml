@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ember-shell"
+version = "0.1.0"
+description = "A modern, beautiful interactive Python shell."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "prompt_toolkit>=3.0.43",
+    "rich>=13.8",
+    "jedi>=0.19",
+    "pygments>=2.15",
+]
+
+[project.optional-dependencies]
+dev = ["pyte", "pexpect", "pytest"]
+
+[project.scripts]
+ember = "ember.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
