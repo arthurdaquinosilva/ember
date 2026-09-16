@@ -7,6 +7,7 @@
 **A modern, beautiful interactive Python shell.**
 IPython's power — magics, history, debugging, extensions — rebuilt around a calm terminal UI.
 
+[![PyPI](https://img.shields.io/pypi/v/ember-shell)](https://pypi.org/project/ember-shell/)
 [![tests](https://github.com/arthurdaquinosilva/ember/actions/workflows/tests.yml/badge.svg)](https://github.com/arthurdaquinosilva/ember/actions/workflows/tests.yml)
 [![python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/arthurdaquinosilva/ember/blob/main/pyproject.toml)
 [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/arthurdaquinosilva/ember/blob/main/LICENSE)
@@ -30,14 +31,11 @@ IPython's power — magics, history, debugging, extensions — rebuilt around a 
 ## Install
 
 ```sh
-pip install git+https://github.com/arthurdaquinosilva/ember.git
+pipx install ember-shell     # the `ember` command everywhere, isolated from your projects
+pip install ember-shell      # or into the current environment
 ```
 
-Or with [pipx](https://pipx.pypa.io/) to get the `ember` command everywhere without touching your projects:
-
-```sh
-pipx install git+https://github.com/arthurdaquinosilva/ember.git
-```
+The package is `ember-shell` on PyPI; the command is `ember`. To try the latest unreleased code: `pip install git+https://github.com/arthurdaquinosilva/ember.git`.
 
 Then run `ember`. Requires Python 3.10+ on macOS or Linux.
 
