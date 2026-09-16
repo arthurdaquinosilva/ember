@@ -16,6 +16,7 @@ from prompt_toolkit.completion import ThreadedCompleter
 from prompt_toolkit.cursor_shapes import ModalCursorShapeConfig
 from prompt_toolkit.document import Document
 from prompt_toolkit.enums import DEFAULT_BUFFER, EditingMode
+from prompt_toolkit.input.ansi_escape_sequences import ANSI_SEQUENCES
 from prompt_toolkit.filters import (
     Condition,
     emacs_mode,
@@ -64,6 +65,28 @@ from ember.shell import Shell
 from ember.transform import has_prompts, is_complete, next_indent, strip_prompts
 
 INDENT = "    "
+
+# Terminals only tell Shift+Enter apart from Enter when asked. While the prompt is open we request
+# xterm's modifyOtherKeys (level 1), which terminals like xterm, iTerm2, WezTerm, Ghostty and tmux
+# (with `extended-keys on`) honour; everyone else ignores the request.
+ENABLE_MODIFIED_KEYS = "\x1b[>4;1m"
+DISABLE_MODIFIED_KEYS = "\x1b[>4;0m"
+
+
+def _register_modified_key_sequences() -> None:
+    """Teach prompt_toolkit the modified-key encodings: modified Enter → newline, other combos → ignored."""
+    for mod in range(2, 9):
+        # xterm format (CSI 27;mod;code ~) and CSI-u format (CSI code;mod u)
+        for seq in (f"\x1b[27;{mod};13~", f"\x1b[13;{mod}u"):
+            ANSI_SEQUENCES[seq] = Keys.ControlJ
+        if mod == 2:
+            continue  # shifted printable keys still arrive as plain characters
+        for code in (9, 27, 127, *range(32, 127)):
+            for seq in (f"\x1b[27;{mod};{code}~", f"\x1b[{code};{mod}u"):
+                ANSI_SEQUENCES.setdefault(seq, Keys.Ignore)
+
+
+_register_modified_key_sequences()
 MENU_HEIGHT = 8
 
 
@@ -98,6 +121,7 @@ class Repl:
     def __init__(self, shell: Shell):
         self.shell = shell
         self.flash: tuple[str, float] | None = None
+        self.shift_enter_works = False  # flips once the terminal delivers a real Shift+Enter
         self.hinter = SignatureHinter(shell, self._invalidate)
 
         self.buffer = Buffer(
@@ -254,6 +278,10 @@ class Repl:
             out += [sep, mark, ("class:status", format_duration(self.shell.last_duration))]
         return out
 
+    @property
+    def _newline_key(self) -> str:
+        return "shift+⏎" if self.shift_enter_works else "alt+⏎"
+
     def _hints(self) -> list[tuple[str, str]]:
         if self.buffer.complete_state:
             return [("tab", "next"), ("⏎", "accept"), ("esc", "close")]
@@ -261,7 +289,7 @@ class Repl:
             return [("⏎", "newline"), ("⏎ on blank line", "run"), ("ctrl+o", "editor")]
         if not self.buffer.text:
             return [("%help", ""), ("obj?", "inspect"), ("ctrl+d", "exit"), ("ctrl+r", "history")]
-        return [("⏎", "run"), ("alt+⏎", "newline"), ("ctrl+o", "editor")]
+        return [("⏎", "run"), (self._newline_key, "newline"), ("ctrl+o", "editor")]
 
     # ── keys ──────────────────────────────────────────────────────────────
 
@@ -298,8 +326,10 @@ class Repl:
             self._newline(b)
 
         @kb.add("escape", "enter", filter=focused & insert_mode)
-        @kb.add("c-j", filter=focused & insert_mode)
+        @kb.add("c-j", filter=focused & insert_mode)  # also Shift+Enter, via the sequences registered above
         def _newline(event: KeyPressEvent) -> None:
+            if event.key_sequence[-1].data.startswith("\x1b["):
+                self.shift_enter_works = True
             self._newline(event.current_buffer)
 
         @kb.add("tab", filter=focused & ~has_selection & insert_mode)
@@ -423,8 +453,18 @@ class Repl:
             if self.app.editing_mode == EditingMode.VI:
                 self.app.vi_state.input_mode = InputMode.INSERT
 
-        with patch_stdout(raw=True):
-            return self.app.run(pre_run=pre_run, inputhook=self._inputhook() if self.shell.inputhook else None)
+        interactive = sys.__stdout__.isatty()
+        if interactive:
+            sys.__stdout__.write(ENABLE_MODIFIED_KEYS)
+            sys.__stdout__.flush()
+        try:
+            with patch_stdout(raw=True):
+                return self.app.run(pre_run=pre_run, inputhook=self._inputhook() if self.shell.inputhook else None)
+        finally:
+            if interactive:
+                # Programs run from cells (input(), pdb, subprocesses) expect a plain keyboard.
+                sys.__stdout__.write(DISABLE_MODIFIED_KEYS)
+                sys.__stdout__.flush()
 
     def _inputhook(self):
         """Wrap the shell's GUI hook: prompt_toolkit's own loop is 'running' while hooks run."""

@@ -355,7 +355,7 @@ def help_panel(magics: dict[str, dict[str, str]]) -> RenderableType:
 
     keys = grid([
         ("enter", "run cell (or newline if incomplete)"),
-        ("alt+enter", "insert newline"),
+        ("shift+enter", "insert newline (or alt+enter / ctrl+j)"),
         ("tab / shift+tab", "complete · indent / dedent"),
         ("→ / ctrl+e", "accept inline suggestion"),
         ("↑ ↓", "history (prefix-aware)"),

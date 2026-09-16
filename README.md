@@ -37,6 +37,7 @@ python3 -m venv .venv && .venv/bin/pip install -e .
 - **Spinner** for slow cells; `ctrl+c` interrupts
 - **Paste anything** — `>>>` and `In [1]:` prompts (and their output lines) are stripped automatically
 - **Background output** from threads appears above the prompt instead of scrambling it
+- **Shift+Enter for a new line** in terminals that report modified keys (iTerm2, WezTerm, Ghostty, kitty, xterm; in tmux set `extended-keys on`) — Alt+Enter and Ctrl+J work everywhere
 - **emacs or vi** key bindings (`--vi`, `%vi`, `%emacs`) with a mode indicator
 - **Themes**: `void` (default), `nebula`, `matrix`
 
@@ -105,7 +106,7 @@ gs = "git status"
 | key | action |
 | --- | --- |
 | `enter` | run (or newline when incomplete) |
-| `alt+enter` / `ctrl+j` | newline |
+| `shift+enter` / `alt+enter` / `ctrl+j` | newline |
 | `tab` / `shift+tab` | complete · indent / dedent |
 | `→` | accept suggestion |
 | `↑` `↓` | history, filtered by what you've typed |
