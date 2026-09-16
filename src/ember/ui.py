@@ -334,7 +334,12 @@ class Repl:
 
         @kb.add("escape", filter=focused & has_completions, eager=True)
         def _escape(event: KeyPressEvent) -> None:
-            event.current_buffer.cancel_completion()
+            b = event.current_buffer
+            b.cancel_completion()
+            # In vi, Esc must still leave insert mode even though it also closed the menu.
+            if event.app.editing_mode == EditingMode.VI and event.app.vi_state.input_mode != InputMode.NAVIGATION:
+                event.app.vi_state.input_mode = InputMode.NAVIGATION
+                b.cursor_position += b.document.get_cursor_left_position()
 
         @kb.add("c-c", filter=focused)
         def _ctrl_c(event: KeyPressEvent) -> None:

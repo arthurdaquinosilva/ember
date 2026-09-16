@@ -177,7 +177,10 @@ def m_editmode(shell: Shell, args: str):
     if mode not in EDITING_MODES:
         raise MagicError("editmode must be vi or emacs")
     shell.set_setting("editing_mode", mode)
-    shell.print(Text.assemble(("editing mode → ", "ember.muted"), (mode, "ember.accent.bold")))
+    shell.print(Text.assemble(("editing mode → ", "ember.muted"), (mode, "ember.accent.bold"), ("  (this session)", "ember.faint")))
+    if shell.profile is not None:
+        shell.print(Text(f'to keep it, add  editing_mode = "{mode}"  to {short_path(shell.profile.config_file)}  or start with --vi',
+                         style="ember.faint"))
 
 
 @line_magic("doctest_mode", doc="toggle plain >>> prompts and output, for copying into doctests")
