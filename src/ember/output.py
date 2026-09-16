@@ -99,6 +99,8 @@ class RailWriter(io.TextIOBase):
             if self.spinner:
                 self.spinner.clear()
             out: list[str] = []
+            if not st.wrote and st.at_line_start:
+                out.append(st.prefix.rstrip() + "\n")  # breathing room below the echoed code
             for piece in _SPLIT.split(s):
                 if not piece:
                     continue

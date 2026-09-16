@@ -176,7 +176,7 @@ class Repl:
         status = Window(FormattedTextControl(self._status), height=1, style="class:status")
         reserve = ConditionalContainer(Window(height=MENU_HEIGHT), filter=has_completions)
 
-        body = HSplit([Window(height=0), top, middle, bottom, self.search, status, reserve])
+        body = HSplit([top, middle, bottom, self.search, Window(height=1), status, Window(height=1), reserve])
         root = FloatContainer(
             content=body,
             floats=[
@@ -365,6 +365,7 @@ class Repl:
             name.append(ch, style=f"bold {color}")
         ui.print()
         ui.print(Text.assemble(("  ✦ ", "ember.accent"), name, (f"  v{__version__}", "ember.faint")))
+        ui.print()
         ui.print(
             Text.assemble(
                 ("    python ", "ember.faint"), (platform.python_version(), "ember.muted"),
@@ -380,7 +381,7 @@ class Repl:
                 ("ctrl+d", "ember.accent"), (" exit", "ember.faint"),
             )
         )
-        ui.print()
+        ui.print("\n")
 
     def read(self) -> str | None:
         initial, self.shell.next_input = self.shell.next_input, ""

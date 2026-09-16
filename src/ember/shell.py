@@ -221,7 +221,9 @@ class Shell:
             self._spinner = None
             if not state.at_line_start:
                 real_out.write("\n")
-                real_out.flush()
+            if state.wrote:
+                real_out.write(state.prefix.rstrip() + "\n")  # breathing room above the footer
+            real_out.flush()
 
     def run_cell(self, source: str) -> None:
         source = source.rstrip().lstrip("\n")
@@ -301,4 +303,4 @@ class Shell:
         if result is not None and not error:
             parts += [(" · ", "ember.faint"), (display.describe(result), "ember.muted"), (" · ", "ember.faint"), (f"Out[{n}]", "ember.faint")]
         self.ui.print(Text.assemble(*parts))
-        self.ui.print()
+        self.ui.print("\n")
