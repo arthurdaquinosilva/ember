@@ -1,28 +1,57 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ember-shell"
 version = "0.2.0"
-description = "A modern, beautiful interactive Python shell."
+description = "A modern, beautiful interactive Python shell — IPython's power with a calm terminal UI."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Arthur D'Aquino", email = "arthurdaquinosilva@gmail.com" }]
+keywords = ["repl", "shell", "ipython", "interactive", "terminal", "tui", "python"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Interpreters",
+    "Topic :: System :: Shells",
+    "Topic :: Terminals",
+]
 dependencies = [
     "prompt_toolkit>=3.0.43",
     "rich>=13.8",
     "jedi>=0.19",
     "pygments>=2.15",
+    "tomli>=2.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
-dev = ["pyte", "pexpect", "pytest", "pyflakes"]
+dev = ["pytest", "pyte", "pexpect", "pyflakes", "build", "twine"]
 trio = ["trio"]
 curio = ["curio"]
+
+[project.urls]
+Homepage = "https://github.com/arthurdaquinosilva/ember"
+Documentation = "https://github.com/arthurdaquinosilva/ember/tree/main/docs"
+Issues = "https://github.com/arthurdaquinosilva/ember/issues"
+Changelog = "https://github.com/arthurdaquinosilva/ember/blob/main/CHANGELOG.md"
 
 [project.scripts]
 ember = "ember.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -160,14 +160,11 @@ def load_settings(profile: Profile | None) -> tuple[Settings, list[str]]:
         try:
             import tomllib
         except ImportError:  # Python 3.10
-            tomllib = None  # type: ignore[assignment]
-        if tomllib is None:
-            warnings.append("config.toml needs Python 3.11+ (tomllib); using defaults")
-        else:
-            try:
-                data = tomllib.loads(profile.config_file.read_text())
-            except (OSError, ValueError) as e:
-                warnings.append(f"could not read {profile.config_file}: {e}")
+            import tomli as tomllib  # type: ignore[no-redef]
+        try:
+            data = tomllib.loads(profile.config_file.read_text())
+        except (OSError, ValueError) as e:
+            warnings.append(f"could not read {profile.config_file}: {e}")
     if theme := os.environ.get("EMBER_THEME"):
         data["theme"] = theme
     for key, value in data.items():
