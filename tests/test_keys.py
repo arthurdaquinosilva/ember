@@ -4,7 +4,7 @@ import pytest
 from prompt_toolkit.input.vt100_parser import Vt100Parser
 from prompt_toolkit.keys import Keys
 
-import ember.ui  # noqa: F401  registers the sequences
+from ember.ui import ENABLE_MODIFIED_KEYS  # importing ember.ui registers the key sequences
 
 
 def parse(data: str):
@@ -18,6 +18,10 @@ def parse(data: str):
 @pytest.mark.parametrize("seq", ["\x1b[13;2u", "\x1b[27;2;13~", "\x1b[13;6u", "\x1b[13;5u", "\x1b[27;5;13~"])
 def test_modified_enter_is_newline(seq):
     assert parse(seq) == [Keys.ControlJ]
+
+
+def test_requests_modify_other_keys():
+    assert ENABLE_MODIFIED_KEYS == "\x1b[>4;1m"
 
 
 def test_plain_enter_still_submits():

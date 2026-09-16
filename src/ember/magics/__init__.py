@@ -166,4 +166,6 @@ def parse_args(args: str, spec: str = "", *long_opts: str) -> tuple[Struct, str]
     return opts, args[pos:].strip()
 
 
-from ember.magics import core, execution, gui, history, namespace, osm  # noqa: E402,F401  (registers magics)
+from ember.magics import core, execution, gui, history, namespace, osm  # noqa: E402
+
+BUILTIN_MODULES = (core, execution, gui, history, namespace, osm)  # importing them registers the magics
