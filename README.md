@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/cover.png" alt="ember's start screen: the pixel EMBER_ wordmark, version and environment info, the input bar and the key bar" width="900">
+<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/cover.png" alt="ember's start screen: the pixel EMBER: wordmark, version and environment info, the input bar and the key bar" width="900">
 
 # ✦ ember
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- `%debug statement` shows the statement's source (`l` works) and a hint to step into the call with `s`.
+- README cover image updated for the `EMBER:` wordmark.
+
 ## 0.2.1
 
 - The startup wordmark now reads `EMBER:`.
