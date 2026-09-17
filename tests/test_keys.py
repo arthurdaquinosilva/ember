@@ -35,7 +35,7 @@ def test_other_modified_keys_are_ignored_not_inserted():
 def test_wordmark_is_four_lines_of_half_blocks():
     from ember.banner import pixel_rows
 
-    rows = pixel_rows("EMBER_")
+    rows = pixel_rows("EMBER:")
     assert len(rows) == 4
     assert set("".join(rows)) <= set("█▀▄ ")
     assert rows[0].startswith("█▀▀▀▀")

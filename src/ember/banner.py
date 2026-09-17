@@ -11,6 +11,7 @@ GLYPHS: dict[str, tuple[str, ...]] = {
     "B": ("####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."),
     "R": ("####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"),
     "_": (".....", ".....", ".....", ".....", ".....", ".....", "#####"),
+    ":": ("...", ".##", ".##", "...", "...", ".##", ".##"),
 }
 _HALF = {(True, True): "█", (True, False): "▀", (False, True): "▄", (False, False): " "}
 
@@ -35,7 +36,7 @@ def pixel_rows(word: str, spacing: int = 1) -> list[str]:
     return lines
 
 
-def wordmark(word: str = "EMBER_", indent: int = 2) -> list[Text]:
+def wordmark(word: str = "EMBER:", indent: int = 2) -> list[Text]:
     """The wordmark in the accent colour; a trailing underscore blinks like a cursor."""
     blink_from = None
     if word.endswith("_"):

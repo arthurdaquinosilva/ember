@@ -63,7 +63,7 @@ Changes made with `%config` (and shortcuts like `%vi`, `%theme`, `%xmode`) last 
 
 ## Layouts and themes
 
-- `block` — a pixel `EMBER_` banner, a full-width filled input bar, a key bar with context-aware shortcuts (replaced by the signature while you type a call) and a mode line with `[INSERT]`/`[NORMAL]` and session status.
+- `block` — a pixel `EMBER:` banner, a full-width filled input bar, a key bar with context-aware shortcuts (replaced by the signature while you type a call) and a mode line with `[INSERT]`/`[NORMAL]` and session status.
 - `box` — a compact banner, a rounded input box titled `In [N]`, and a single status line.
 
 Switch live with `%config layout=box`. List and preview themes with `%theme`, switch with `%theme nebula`.

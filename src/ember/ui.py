@@ -536,10 +536,10 @@ class Repl:
         ui = self.shell.ui
         ui.print()
         if ui.width >= 40:
-            for line in wordmark("EMBER_"):
+            for line in wordmark("EMBER:"):
                 ui.print(line, overflow="crop", no_wrap=True)
         else:
-            ui.print(Text("  EMBER_", style="ember.accent.bold"))
+            ui.print(Text("  EMBER:", style="ember.accent.bold"))
         ui.print()
         ui.print(Text(f"  v{__version__}", style="ember.faint"))
         ui.print()

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- The startup wordmark now reads `EMBER:`.
+- Docs: debugging with `breakpoint()`, `%debug`, `%pdb`, `%run -d` and pdb commands.
+
 ## 0.2.0
 
 - **Block layout** (new default): pixel `EMBER_` banner, full-width input bar, context-aware key bar and mode line. The rounded box is still available with `layout = "box"`.
