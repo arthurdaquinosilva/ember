@@ -140,7 +140,14 @@ def m_debug(shell: Shell, args: str):
     stmt = args.strip()
     shell.pause_output()
     if stmt:
-        shell.debugger().run(stmt, shell.ns)
+        # Give the statement a source "file" so `l` / `ll` can show it, instead of pdb's `<string>`.
+        import linecache
+
+        filename = f"<debug-{shell.count}>"
+        linecache.cache[filename] = (len(stmt), None, [stmt + "\n"], filename)
+        code = compile(shell.transform(stmt), filename, "exec")
+        shell.print(Text("stopped before the statement runs — s steps into the call, n runs it, c continues", style="ember.faint"))
+        shell.debugger().run(code, shell.ns)
         return
     if shell.last_exception is None:
         raise MagicError("no exception to debug")

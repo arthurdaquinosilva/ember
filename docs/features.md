@@ -109,7 +109,7 @@ ember uses Python's standard debugger, `pdb`. The debugger prompt appears inside
 
 **Stop on every error** — `%pdb on` opens the debugger automatically whenever a cell raises (`%pdb off` to stop). Set `pdb = true` in [config.toml](configuration.md) to keep it on.
 
-**Start under the debugger** — `%debug average([1, 2])` runs one statement from its first line; `%run -d script.py` steps through a file from its first line; add `-b script.py:12` to set a breakpoint, then type `c` to run to it.
+**Start under the debugger** — `%debug average([1, 2])` stops just before the statement runs: type `s` to step into the call (then `ll` shows the function), `n` to run it, or `c` to continue; `%run -d script.py` steps through a file from its first line; add `-b script.py:12` to set a breakpoint, then type `c` to run to it.
 
 Functions defined in cells have their source available, so `l` and `ll` show the code.
 
