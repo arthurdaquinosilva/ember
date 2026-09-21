@@ -316,3 +316,34 @@ def test_autoreload_updates_existing_objects(shell, profile, monkeypatch):
     shell.run_cell("pass")
     assert shell.ns["greet"]() == "version two"
     assert shell.ns["t"].who() == "new and improved"
+
+
+def test_sys_exit_in_code_does_not_quit_ember(shell, capfd):
+    shell.run_cell("import sys\nsys.exit('Usage: python maze.py maze.txt')")
+    assert not shell.last_ok and not shell.exit_requested
+    assert "Usage: python maze.py maze.txt" in capfd.readouterr().out
+    shell.run_cell("sys.exit(0)")
+    assert shell.last_ok and not shell.exit_requested
+    shell.run_cell("1 + 1")  # the session is still alive
+    assert shell.last_ok
+
+
+def test_exit_call_and_magic_leave(shell):
+    with pytest.raises(SystemExit):
+        shell.run_cell("exit()")
+    shell.exit_requested = False
+    with pytest.raises(SystemExit):
+        shell.run_cell("%exit")
+
+
+def test_cli_resets_argv(monkeypatch, tmp_path):
+    import sys
+
+    from ember import cli
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "c"))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "d"))
+    status = cli.main(["--vi", "-c", "import sys\nassert sys.argv == ['-c'], sys.argv"])
+    assert status == 0
+    assert cli.main(["-c", "import sys; sys.exit(3)"]) == 3
+    sys.argv = ["pytest"]

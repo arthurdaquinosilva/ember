@@ -90,6 +90,26 @@ class EmberAPI:
         self._shell.print(psearch(self._shell, pattern))
 
 
+class ExitAutocall:
+    """`exit` / `quit` in the session: calling them leaves ember (a bare `exit` does too)."""
+
+    def __init__(self, shell: Shell):
+        self._shell = shell
+
+    def __call__(self, code: int | None = 0) -> None:
+        self._shell.exit_requested = True
+        self._shell.exit_status = code if isinstance(code, int) else 0
+
+    def __repr__(self) -> str:
+        return "type exit, exit() or press Ctrl+D to leave ember"
+
+
+def _exit_code(exc: SystemExit) -> int:
+    if exc.code is None:
+        return 0
+    return exc.code if isinstance(exc.code, int) else 1
+
+
 class Shell:
     active: ClassVar[Shell | None] = None
 
@@ -109,6 +129,7 @@ class Shell:
         self.current_filename = "<cell>"
         self.current_magic = ""
         self.exit_requested = False
+        self.exit_status: int | None = None  # code of the last sys.exit() a cell raised
         self.doctest_mode = False
         self.starting_dir = os.getcwd()
         self.dir_history: list[str] = [self.starting_dir]
@@ -131,6 +152,7 @@ class Shell:
         self.ns.update({
             "__builtins__": builtins, "In": self.In, "Out": self.Out, "_ih": self.In, "_oh": self.Out,
             "_dh": self.dir_history, API: self.api, "get_ipython": ipython.get_ipython, "display": display_function,
+            "exit": ExitAutocall(self), "quit": ExitAutocall(self),
         })
         self.initial_names = set(self.ns)
         sys.modules["__main__"] = self.module
@@ -576,8 +598,15 @@ class Shell:
 
                         _report_reload(self, *self.autoreload.check())
                     result.result = self.execute(translated, filename, on_value=self._display_result)
-                except SystemExit:
-                    raise
+                except SystemExit as e:
+                    # A script calling sys.exit() ends the cell, not ember (like IPython).
+                    self.exit_status = _exit_code(e)
+                    if self.exit_status:
+                        error = "SystemExit"
+                        result.error_in_exec = e
+                        detail = str(e.code) if e.code is not None and not isinstance(e.code, int) else f"exit status {e.code}"
+                        self.print(Text.assemble(("SystemExit: ", "ember.err.bold"), (detail, "ember.fg")))
+                        self.print(Text("the code called sys.exit(); ember keeps running — type exit to leave", style="ember.faint"))
                 except MagicError as e:
                     error = "failed"
                     result.error_in_exec = e

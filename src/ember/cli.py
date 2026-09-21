@@ -41,6 +41,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-startup", action="store_true", help="skip startup files, exec_lines and extensions")
     parser.add_argument("--version", action="version", version=f"ember {__version__}")
     opts = parser.parse_args(argv)
+    # Like `python`: code in the session sees an empty argv, not ember's own options.
+    # (%run sets sys.argv for the scripts it runs.)
+    sys.argv = ["-c"] if opts.command is not None else [""]
 
     from ember.config import load_profile, load_settings
     from ember.shell import Shell
@@ -83,6 +86,8 @@ def _run_batch(shell, opts: argparse.Namespace, warnings: list[str]) -> int | No
         shell.run_cell(f"%run {shlex.join([opts.file, *opts.args])}")
         ran = True
     if ran and not opts.i:
+        if shell.exit_status is not None:
+            return shell.exit_status
         return 0 if shell.last_ok else 1
     if not sys.stdin.isatty():
         shell.run_cell(sys.stdin.read())

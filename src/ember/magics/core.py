@@ -314,4 +314,4 @@ def m_copy(shell: Shell, args: str):
 
 @line_magic("exit", "quit", doc="leave ember")
 def m_exit(shell: Shell, args: str):
-    raise SystemExit(0)
+    shell.exit_requested = True
