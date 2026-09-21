@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.3
 
 - Code in the session sees `sys.argv == ['']` like the Python REPL, instead of ember's own options (`--vi`, …). Scripts that read `sys.argv` on import no longer pick up ember's arguments.
 - `sys.exit()` raised by your code ends the cell with a `SystemExit` message instead of quitting ember; `exit`, `exit()`, `quit` and `%exit` still leave. `ember -c` returns the script's exit status.
