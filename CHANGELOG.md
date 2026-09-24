@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- One-line installer: `curl -fsSL .../install.sh | sh` sets ember up in its own environment (pipx when available), with `--uninstall`, `EMBER_VERSION`, `EMBER_NO_PIPX` and `EMBER_INSTALL_DIR`.
+
 ## 0.2.3
 
 - Code in the session sees `sys.argv == ['']` like the Python REPL, instead of ember's own options (`--vi`, …). Scripts that read `sys.argv` on import no longer pick up ember's arguments.

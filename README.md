@@ -31,6 +31,14 @@ IPython's power — magics, history, debugging, extensions — rebuilt around a 
 ## Install
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/install.sh | sh
+```
+
+The installer picks a suitable Python, puts ember in its own virtual environment (using [pipx](https://pipx.pypa.io/) if you have it) and links the `ember` command into `~/.local/bin`. Nothing is added to your projects' environments. Remove it any time with `… | sh -s -- --uninstall`.
+
+Already a Python user? Install it yourself instead:
+
+```sh
 pipx install ember-shell     # the `ember` command everywhere, isolated from your projects
 pip install ember-shell      # or into the current environment
 ```

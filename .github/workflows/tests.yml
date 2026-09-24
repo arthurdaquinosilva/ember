@@ -26,3 +26,7 @@ jobs:
         run: python -m pytest -q
       - name: Docs are up to date
         run: python scripts/gen_magic_docs.py --check
+      - name: Install script
+        run: |
+          sh -n install.sh
+          sh install.sh --help

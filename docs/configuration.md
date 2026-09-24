@@ -1,5 +1,21 @@
 # Configuration
 
+## Installing and removing
+
+The one-line installer keeps ember out of your projects' environments:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/install.sh | sh
+```
+
+| Environment variable | |
+| --- | --- |
+| `EMBER_VERSION=0.2.3` | Install a specific version |
+| `EMBER_NO_PIPX=1` | Use the built-in virtual environment even if pipx is installed |
+| `EMBER_INSTALL_DIR` | Where to link the `ember` command (default `~/.local/bin`) |
+
+It uses pipx when available, otherwise a virtual environment in `~/.local/share/ember-shell/venv`. Re-running it upgrades. `… | sh -s -- --uninstall` removes the command and that environment, and keeps your settings, history and stored variables.
+
 ## Where things live
 
 | Path | Contents |
