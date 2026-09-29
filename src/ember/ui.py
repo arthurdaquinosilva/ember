@@ -29,7 +29,9 @@ from prompt_toolkit.filters import (
     vi_navigation_mode,
 )
 from prompt_toolkit.formatted_text import StyleAndTextTuples
-from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
+from prompt_toolkit.key_binding import KeyBindings, KeyBindingsBase, KeyPressEvent
+from prompt_toolkit.key_binding.bindings.auto_suggest import load_auto_suggest_bindings
+from prompt_toolkit.key_binding.key_bindings import merge_key_bindings
 from prompt_toolkit.key_binding.vi_state import InputMode
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.patch_stdout import patch_stdout
@@ -406,7 +408,7 @@ class Repl:
 
     # ── keys ──────────────────────────────────────────────────────────────
 
-    def _bindings(self) -> KeyBindings:
+    def _bindings(self) -> KeyBindingsBase:
         kb = KeyBindings()
         focused = has_focus(DEFAULT_BUFFER)
         insert_mode = emacs_mode | vi_insert_mode
@@ -506,7 +508,10 @@ class Repl:
         def _editor(event: KeyPressEvent) -> None:
             event.current_buffer.open_in_editor(validate_and_handle=False)
 
-        return kb
+        # Application's defaults leave these out (PromptSession adds them itself): → / ctrl+e /
+        # ctrl+f accept the inline suggestion, alt+f accepts one word of it. Ours come last, so
+        # they win wherever both bind the same key.
+        return merge_key_bindings([load_auto_suggest_bindings(), kb])
 
     def _submit(self, event: KeyPressEvent) -> None:
         b = event.current_buffer

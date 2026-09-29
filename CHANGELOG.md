@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed: → (and ctrl+e / ctrl+f) accept the grey inline suggestion again, in both emacs and vi mode; alt+f accepts one word. The bindings were missing from ember's custom prompt.
+
 - One-line installer: `curl -fsSL .../install.sh | sh` sets ember up in its own environment (pipx when available), with `--uninstall`, `EMBER_VERSION`, `EMBER_NO_PIPX` and `EMBER_INSTALL_DIR`.
 
 ## 0.2.3
