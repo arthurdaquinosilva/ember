@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/cover.png" alt="ember's start screen: the pixel EMBER: wordmark, version and environment info, the input bar and the key bar" width="900">
+<img src="https://raw.githubusercontent.com/arthurdaquinosilva/ember/main/docs/assets/cover.svg?sanitize=true" alt="ember's start screen: the pixel EMBER: wordmark, version and environment info, the input bar and the key bar" width="900">
 
 # ✦ ember
 
@@ -104,6 +104,7 @@ python -m venv .venv && .venv/bin/pip install -e '.[dev]'
 .venv/bin/python -m pytest              # unit tests
 .venv/bin/python scripts/gen_magic_docs.py   # regenerate docs/magics.md
 .venv/bin/python scripts/screenshot.py       # re-record docs/assets/demo.svg
+.venv/bin/python scripts/cover.py            # re-record docs/assets/cover.svg
 ```
 
 ember is built on [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit) (input and layout), [Rich](https://github.com/Textualize/rich) (output), [Jedi](https://github.com/davidhalter/jedi) (completion and signatures) and [Pygments](https://pygments.org/) (highlighting).
