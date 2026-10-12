@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- **Rule layout** (new default), in querky's style: the input between two horizontal rules and a one-line footer — `-- INSERT --` in vi mode or `? for shortcuts` on the left, `In [N]` and session status on the right; the signature of the call you're typing replaces the left side while you type it. `?` on an empty prompt lists the shortcuts. Completions are a plain list under the prompt. Cell output hangs under a `⎿` marker, five columns in, with the status line last, and the spinner reads `✻ Running… (2s · ctrl+c to interrupt)`. `layout = "block"` and `layout = "box"` bring back the previous looks.
+- Ctrl+C clears the input; on an empty prompt it now exits on a second press within 1.5 seconds (instead of only hinting at Ctrl+D), in every layout.
+
 ## 0.2.4
 
 - Fixed: → (and ctrl+e / ctrl+f) accept the grey inline suggestion again, in both emacs and vi mode; alt+f accepts one word. The bindings were missing from ember's custom prompt.
