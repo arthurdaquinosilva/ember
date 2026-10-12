@@ -26,7 +26,7 @@ IPython's power — magics, history, debugging, extensions — rebuilt around a 
 - **Help while you type.** Completions with type icons, and live signatures with declared *and* inferred types — `greet(name: str, times: int = 1) -> str` — even for functions without annotations.
 - **Everything you use IPython for.** 85 magics, `obj?`, `!shell`, session history in SQLite, `%autoreload`, `%debug`, `%timeit`, `%prun`, top-level `await`, GUI event loops…
 - **Runs IPython code.** `get_ipython()`, `IPython.display`, custom magics and IPython extensions like `line_profiler` work unchanged.
-- **Feels good.** Paste code straight from docs (`>>>` prompts are stripped), Shift+Enter for new lines, vi or emacs keys, three themes, two layouts.
+- **Feels good.** Paste code straight from docs (`>>>` prompts are stripped), Shift+Enter for new lines, vi or emacs keys, three themes, three layouts.
 
 ## Install
 

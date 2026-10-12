@@ -13,13 +13,13 @@ XMODES = ("minimal", "plain", "context", "verbose")
 INTERACTIVITY = ("last_expr", "all", "last", "none", "last_expr_or_assign")
 AUTOAWAIT = ("asyncio", "trio", "curio", "off")
 EDITING_MODES = ("emacs", "vi")
-LAYOUTS = ("block", "box")
+LAYOUTS = ("rule", "block", "box")
 
 
 @dataclass
 class Settings:
     theme: str = "void"
-    layout: str = "block"
+    layout: str = "rule"
     editing_mode: str = "emacs"
     automagic: bool = True
     autoreload: int = 0

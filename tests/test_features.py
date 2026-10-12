@@ -347,3 +347,28 @@ def test_cli_resets_argv(monkeypatch, tmp_path):
     assert status == 0
     assert cli.main(["-c", "import sys; sys.exit(3)"]) == 3
     sys.argv = ["pytest"]
+
+
+def test_rule_layout_hangs_output_under_a_marker(shell, capfd):
+    assert shell.settings.layout == "rule"  # the default
+    capfd.readouterr()
+    shell.run_cell("print('one'); print('two'); 40 + 2")
+    out = capfd.readouterr().out
+    assert "> print('one')" in out
+    assert "  ⎿  one\n     two\n" in out
+    assert "     ✓ " in out and "Out[1]" in out  # the footer continues the block
+    assert "╰─" not in out and "│" not in out
+
+
+def test_rule_layout_footer_takes_the_marker_when_nothing_printed(shell, capfd):
+    capfd.readouterr()
+    shell.run_cell("x = 1")
+    assert "  ⎿  ✓ " in capfd.readouterr().out
+
+
+def test_block_layout_keeps_its_rail(shell, capfd):
+    shell.run_cell("%config layout=block")
+    capfd.readouterr()
+    shell.run_cell("print('one')")
+    out = capfd.readouterr().out
+    assert "│ one" in out and "╰─ ✓" in out

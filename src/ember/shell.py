@@ -34,7 +34,7 @@ from ember.history import HistoryManager
 from ember.ipython.display import display as display_function
 from ember.ipython.shell import EmberInteractiveShell, ExecutionInfo, ExecutionResult
 from ember.magics import CELL_MAGICS, LINE_MAGICS, MagicError
-from ember.output import RailState, RailWriter, Spinner, format_duration
+from ember.output import REST, STAR_FRAMES, RailState, RailWriter, Spinner, format_duration
 from ember.theme import PALETTES, Theme, get_theme
 from ember.transform import API, strip_prompts, transform
 from ember.utils import SList, expand_vars
@@ -162,6 +162,7 @@ class Shell:
         self.ui = self._make_console(sys.__stdout__)
         self._out: Console | None = None
         self._spinner: Spinner | None = None
+        self._rail: RailState | None = None  # the last cell's, so the footer knows if `⎿` is taken
         self._display_sink: list[Any] | None = None
         self._last_displayed: Any = None
         self._depth = 0
@@ -479,17 +480,33 @@ class Shell:
     def _capture(self) -> Iterator[RailState]:
         real_out, real_err = sys.__stdout__, sys.__stderr__
         plain = self.doctest_mode
-        state = RailState("" if plain else self._ansi(("│ ", "ember.border")))
-        spinner = Spinner(
-            real_out,
-            state,
-            lambda frame, elapsed: self._ansi(
-                ("╰─ ", "ember.border"), (frame, "ember.accent"), (" running ", "ember.muted"),
-                (format_duration(elapsed), "ember.faint"), ("  ctrl+c to interrupt", "ember.faint"),
-            ),
-        )
-        out = RailWriter(real_out, state, spinner, spacer=not plain)
-        err = RailWriter(real_err, state, spinner, spacer=not plain)
+        rule = self.settings.layout == "rule" and not plain
+        if rule:
+            # querky's style: output hangs under `  ⎿  `, five columns in, with no rail
+            state = RailState(REST, first=self._ansi(("  ⎿  ", "ember.faint")))
+            spinner = Spinner(
+                real_out,
+                state,
+                lambda frame, elapsed: self._ansi(
+                    (frame + " ", "ember.accent"), ("Running…", "ember.accent"),
+                    (f" ({format_duration(elapsed)} · ctrl+c to interrupt)", "ember.faint"),
+                ),
+                frames=STAR_FRAMES,
+            )
+        else:
+            state = RailState("" if plain else self._ansi(("│ ", "ember.border")))
+            spinner = Spinner(
+                real_out,
+                state,
+                lambda frame, elapsed: self._ansi(
+                    ("╰─ ", "ember.border"), (frame, "ember.accent"), (" running ", "ember.muted"),
+                    (format_duration(elapsed), "ember.faint"), ("  ctrl+c to interrupt", "ember.faint"),
+                ),
+            )
+        self._rail = state
+        spacer = not plain and not rule
+        out = RailWriter(real_out, state, spinner, spacer=spacer)
+        err = RailWriter(real_err, state, spinner, spacer=spacer)
         saved = sys.stdout, sys.stderr, builtins.input
         real_input = builtins.input
 
@@ -498,7 +515,7 @@ class Shell:
             return real_input(prompt)
 
         sys.stdout, sys.stderr, builtins.input = out, err, _input
-        self._out = self._make_console(out, width=max(20, self.width - (0 if plain else 2)))
+        self._out = self._make_console(out, width=max(20, self.width - (0 if plain else len(REST) if rule else 2)))
         self._spinner = spinner
         spinner.start()
         try:
@@ -510,7 +527,7 @@ class Shell:
             self._spinner = None
             if not state.at_line_start:
                 real_out.write("\n")
-            if state.wrote and not plain:
+            if state.wrote and spacer:
                 real_out.write(state.prefix.rstrip() + "\n")  # breathing room above the footer
             real_out.flush()
 
@@ -721,12 +738,17 @@ class Shell:
             body: RenderableType = Text.assemble(("!", "ember.accent.bold"), (stripped[1:], "ember.fg"))
         else:
             body = Syntax(source, "python", theme=self.theme.syntax_theme, background_color="default", word_wrap=True)
-        marker = ">" if self.settings.layout == "block" else "❯"
-        grid.add_row(Text(marker, style="ember.accent.bold"), body)
+        marker = "❯" if self.settings.layout == "box" else ">"
+        style = "ember.muted" if self.settings.layout == "rule" else "ember.accent.bold"
+        grid.add_row(Text(marker, style=style), body)
         self.ui.print(grid)
 
     def footer(self, n: int, elapsed: float, result: Any, error: str | None) -> None:
-        parts: list[tuple[str, str]] = [("╰─ ", "ember.border")]
+        if self.settings.layout == "rule":
+            rail = self._rail
+            parts: list[tuple[str, str]] = [(REST if rail is not None and rail.first_used else "  ⎿  ", "ember.faint")]
+        else:
+            parts = [("╰─ ", "ember.border")]
         if error:
             parts += [("✗ ", "ember.err.bold"), (error, "ember.err"), (" · ", "ember.faint")]
         else:

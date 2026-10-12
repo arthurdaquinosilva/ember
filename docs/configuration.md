@@ -34,7 +34,7 @@ Every setting is optional. This example shows each one with its default:
 
 ```toml
 theme = "void"                     # void · nebula · matrix
-layout = "block"                   # block (full-width input bar) · box (rounded box)
+layout = "rule"                    # rule (input between two rules, querky-style) · block (full-width input bar) · box (rounded box)
 editing_mode = "emacs"             # emacs · vi
 automagic = true                   # run magics without the % prefix (cd .., ls, pwd)
 autoreload = 0                     # 0 off · 1 only %aimport-ed modules · 2 all modules
@@ -79,6 +79,7 @@ Changes made with `%config` (and shortcuts like `%vi`, `%theme`, `%xmode`) last 
 
 ## Layouts and themes
 
+- `rule` (default) — the pixel `EMBER:` banner, the input between two horizontal rules, and a one-line footer: `-- INSERT --` in vi mode or `? for shortcuts` on the left (press `?` on an empty prompt for the list), `In [N]` and session status on the right. Completions are a plain list under the prompt, and cell output hangs under a `⎿` marker. Ctrl+C clears the input; on an empty prompt, press it twice to exit.
 - `block` — a pixel `EMBER:` banner, a full-width filled input bar, a key bar with context-aware shortcuts (replaced by the signature while you type a call) and a mode line with `[INSERT]`/`[NORMAL]` and session status.
 - `box` — a compact banner, a rounded input box titled `In [N]`, and a single status line.
 

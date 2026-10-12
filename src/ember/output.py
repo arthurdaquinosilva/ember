@@ -10,6 +10,8 @@ from typing import TextIO
 
 _SPLIT = re.compile(r"(\r\n|\n|\r)")
 FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+STAR_FRAMES = ("·", "✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳", "✢")  # the rule layout's, as in querky
+REST = "     "  # the rule layout indents output five columns, under a `  ⎿  ` on the first line
 
 
 def format_duration(seconds: float) -> str:
@@ -26,18 +28,29 @@ def format_duration(seconds: float) -> str:
 
 
 class RailState:
-    """Shared between stdout and stderr so both agree on where the cursor is."""
+    """Shared between stdout and stderr so both agree on where the cursor is.
 
-    def __init__(self, prefix: str):
+    With `first`, the first visible line gets that prefix instead (the `rule` layout's `  ⎿  `)."""
+
+    def __init__(self, prefix: str, first: str | None = None):
         self.prefix = prefix
+        self.first = first
+        self.first_used = first is None
         self.at_line_start = True
         self.wrote = False
         self.lock = threading.RLock()
 
+    def take(self) -> str:
+        if self.first_used:
+            return self.prefix
+        self.first_used = True
+        return self.first or self.prefix
+
 
 class Spinner:
-    def __init__(self, real: TextIO, state: RailState, render, delay: float = 0.25):
+    def __init__(self, real: TextIO, state: RailState, render, delay: float = 0.25, frames=FRAMES):
         self.real = real
+        self.frames = frames
         self.state = state
         self.render = render  # (frame, elapsed) -> ansi str
         self.delay = delay
@@ -63,7 +76,7 @@ class Spinner:
             with self.state.lock:
                 if self._stop.is_set() or not self.state.at_line_start:
                     continue
-                self.real.write("\r\x1b[2K" + self.render(FRAMES[i % len(FRAMES)], elapsed))
+                self.real.write("\r\x1b[2K" + self.render(self.frames[i % len(self.frames)], elapsed))
                 self.real.flush()
                 self.shown = True
             i += 1
@@ -115,7 +128,7 @@ class RailWriter(io.TextIOBase):
                     st.at_line_start = True
                 else:
                     if st.at_line_start:
-                        out.append(st.prefix)
+                        out.append(st.take())
                         st.at_line_start = False
                     out.append(piece)
             self.real.write("".join(out))
